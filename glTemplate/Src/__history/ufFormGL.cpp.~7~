@@ -1,0 +1,179 @@
+//---------------------------------------------------------------------------
+#include <vcl.h>
+#include <gl/gl.h>
+#include <gl/glu.h>
+#include <math.h>
+#pragma hdrstop
+
+#include "ufFormGL.h"
+#include "uDraw.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TFormGL *FormGL;
+//---------------------------------------------------------------------------
+__fastcall TFormGL::TFormGL(TComponent* Owner)
+				   :TForm(Owner)
+{ //----------------для 3D---------------------------------------------------
+  FTrans[0] = 0.0;
+  FTrans[1] = 0.0;
+  FTrans[2] = 0.0;
+
+  FMouseX = 0;
+  FMouseY = 0;
+
+  FEye[0] = 5.0;
+  FEye[1] = 5.0;
+  FEye[2] = 5.0;
+
+  FCenter[0] = 0.0;
+  FCenter[1] = 0.0;
+  FCenter[2] = 0.0;
+
+  FUp[0] = 0.0;
+  FUp[1] = 0.0;
+  FUp[2] = 1.0;
+
+  FPAngle = 45.0;
+  FQAngle = 45.0;
+
+  FDistance = 5.0;
+
+  FZnear = 1.0;
+  FZfar  = 20.0;
+  //-------------------------------------------------------------------------
+  FGLDC = GetDC(Handle);
+  SetDCPixelFormat(FGLDC);
+  FHRC = wglCreateContext(FGLDC);
+  wglMakeCurrent(FGLDC, FHRC);
+  FColor = clCream; //clSkyBlue; //clCream; //0x00E9CEB4;
+  ColorToRGB(FColor, &FR, &FG, &FB);
+  glClearColor(FR, FG, FB, 1.0);
+}
+//---------------------------------------------------------------------------
+__fastcall TFormGL::~TFormGL(void)
+{ wglMakeCurrent(NULL, NULL);
+  wglDeleteContext(FHRC);
+  ReleaseDC(Handle, FGLDC);
+  DeleteDC(FGLDC);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFormGL::FormResize(TObject *Sender)
+{ glViewport(0, 0, ClientWidth, ClientHeight);               // Область виводу
+  //----------------для 3D----------------------------------------------------
+/*
+  glMatrixMode(GL_PROJECTION);   // Матриця проекцій
+  glLoadIdentity();    			 // Записати в матрицю 1 по головній діагоналі
+  gluPerspective(70.0, ClientWidth/ClientHeight, FZnear, FZfar); // Перспектива
+  glTranslatef(FTrans[0], FTrans[1], FTrans[2]); // початковий перенос системи координат
+  //------- Розраховуємо координати положення спостерігача -------------------//
+  FEye[0] = FDistance*sin(FPAngle*M_PI/180)*cos(FQAngle*M_PI/180) + FCenter[0];
+  FEye[1] = FDistance*sin(FPAngle*M_PI/180)*sin(FQAngle*M_PI/180) + FCenter[1];
+  FEye[2] = FDistance*cos(FPAngle*M_PI/180)                       + FCenter[2];
+  // Перевіряємо, чи не перекрутилися ми на 180 градусів
+  int k = (int)FPAngle/360;
+  if(FPAngle>=0+360*k && FPAngle<=180+360*k) FUp[2] = 1.0; else FUp[2] = -1.0;
+  // Встановлюємо позицію спостерігача і сцени
+  gluLookAt(FEye[0], FEye[1], FEye[2], FCenter[0], FCenter[1], FCenter[2], FUp[0], FUp[1], FUp[2]);
+  glMatrixMode(GL_MODELVIEW);   // Матриця моделі
+  glLoadIdentity();             // Записати в матрицю 1 по головній діагоналі
+*/
+  //-------------------------------------------------------------------------
+  InvalidateRect(Handle, NULL, false);                       // Перемалювати вікно
+}
+//---------------------------------------------------------------------------
+void __fastcall TFormGL::FormPaint(TObject *Sender)
+{ /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glPushMatrix();
+
+	//-------------тут ваш код-----------------------------------------------
+	DrawAxes(true); // малюємо осі поточної системи координат об'єкта
+  glPopMatrix();
+  DrawAxes(false); // малюємо осі вихідної системи координат
+  //SwapBuffers(FGLDC);
+  */
+
+}
+//---------------------------------------------------------------------------
+void __fastcall TFormGL::FormKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+{ if (Key == VK_ESCAPE) Close();
+  if (Key == VK_RIGHT)  FTrans[0] += 0.05;
+  if (Key == VK_LEFT)   FTrans[0] -= 0.05;
+  if (Key == VK_UP)     FTrans[1] += 0.05;
+  if (Key == VK_DOWN)   FTrans[1] -= 0.05;
+  FormResize(this);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFormGL::FormMouseMove(TObject *Sender, TShiftState Shift, int X, int Y)
+{ // ------------------------ для повороту в 3D -----------------------------//
+  if(Shift.Contains(ssLeft))
+  { FDistance = sqrt((FEye[0]-FCenter[0])*(FEye[0]-FCenter[0]) +
+					 (FEye[1]-FCenter[1])*(FEye[1]-FCenter[1]) +
+					 (FEye[2]-FCenter[2])*(FEye[2]-FCenter[2]));
+	if(FMouseX != X)
+	{ if(X>FMouseX) FQAngle -= 2; else FQAngle += 2;
+	  FMouseX = X;
+	}
+	if(FMouseY != Y)
+	{ if(Y>FMouseY) FPAngle -= 2; else FPAngle += 2;
+	  FMouseY = Y;
+	}
+	FormResize(this);
+  }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TFormGL::FormMouseWheel(TObject *Sender, TShiftState Shift, int WheelDelta,
+		  TPoint &MousePos, bool &Handled)
+{ //------ Приблизити або віддалити зображення для 3D -----------------------//
+  if(!WheelDelta) return;
+  if(WheelDelta > 0)
+  { FDistance -= 1;
+	if(FDistance <= FZnear) FDistance = FZnear + 1;
+	FMouseX = MousePos.x;
+	FMouseY = MousePos.y;
+  }
+  if(WheelDelta < 0)
+  {	FDistance += 1;
+	FMouseX = MousePos.x;
+	FMouseY = MousePos.y;
+	if(FDistance > FZfar) FDistance = FZfar - 1;
+  }
+  FormResize(this);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFormGL::FormMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
+          int X, int Y)
+{
+double width=FormGL->Width;
+double height=FormGL->Height;
+double x =X/width*2-1;
+double y =1-Y/height*2;
+
+if (Button==mbLeft)
+{  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glPushMatrix();
+	FuncForAddPoint(x,y);
+	DrawAxes(true); // малюємо осі поточної системи координат об'єкта
+	glPopMatrix();
+	DrawAxes(false); // малюємо осі вихідної системи координат
+  SwapBuffers(FGLDC)  ;
+
+
+}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TFormGL::Button1Click(TObject *Sender)
+{   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glPushMatrix();
+		  Draw();
+
+	DrawAxes(true); // малюємо осі поточної системи координат об'єкта
+  glPopMatrix();
+  DrawAxes(false); // малюємо осі вихідної системи координат
+ SwapBuffers(FGLDC);
+
+}
+//---------------------------------------------------------------------------
+

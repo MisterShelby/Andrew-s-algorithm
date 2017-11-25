@@ -1,0 +1,76 @@
+//---------------------------------------------------------------------------
+#include <vcl.h>
+#include <gl.h>
+#pragma hdrstop
+#include "uDraw.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+//========================= Встановити формат пікселя ========================//
+void SetDCPixelFormat(HDC hdc)
+{ PIXELFORMATDESCRIPTOR pfd, *ppfd; int iPF;
+  ppfd = &pfd;
+  ppfd->nSize   = sizeof(PIXELFORMATDESCRIPTOR);
+  ppfd->dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+  iPF = ChoosePixelFormat(hdc, ppfd);
+  SetPixelFormat(hdc, iPF, ppfd);
+}
+//============================== Малювання осей ==============================//
+void DrawAxes(bool Local)
+{ GLfloat color[3]; // масив для збереження складових кольору
+  try
+  { glPushMatrix();     // Запамятали поточнs матрицю
+	glGetFloatv(GL_CURRENT_COLOR, color); // запамятали поточний колір
+	glScalef(0.75, 0.75, 0.75); // Встановили масштабування по всім осям
+	glBegin(GL_LINES);
+		if(Local) glColor3f(0, 0, 0); else glColor3f (1, 0, 0);
+		glVertex3f(0, 0, 0);
+		glVertex3f(3, 0, 0);
+		if(Local) glColor3f(0, 0, 0); else glColor3f (0, 1, 0);
+		glVertex3f(0, 0, 0);
+		glVertex3f(0, 3, 0);
+		if(Local) glColor3f(0, 0, 0); else glColor3f (0, 0, 1);
+		glVertex3f(0, 0, 0);
+		glVertex3f(0, 0, 3);
+	glEnd();
+	// буква X
+	if(Local) glColor3f(0, 0, 0); else glColor3f(1, 0, 0);
+	glBegin(GL_LINES);
+		glVertex3f(3.1, -0.05, 0.1);
+		glVertex3f(3.1, 0.05, -0.1);
+		glVertex3f(3.1, -0.05, -0.1);
+		glVertex3f(3.1, 0.05, 0.1);
+	glEnd();
+	// буква Y
+	if(Local) glColor3f(0, 0, 0); else glColor3f(0, 1, 0);
+	glBegin(GL_LINES);
+		glVertex3f(0.0, 3.1, 0.0);
+		glVertex3f(0.0, 3.1, -0.1);
+		glVertex3f(0.0, 3.1, 0.0);
+		glVertex3f(0.1, 3.1, 0.1);
+		glVertex3f(0.0, 3.1, 0.0);
+		glVertex3f(-0.1, 3.1, 0.1);
+	glEnd();
+	// буква Z
+	if(Local) glColor3f(0, 0, 0); else glColor3f(0, 0, 1);
+	glBegin(GL_LINES);
+		glVertex3f(0.1, -0.1, 3.1);
+		glVertex3f(-0.1, -0.1, 3.1);
+		glVertex3f(0.1, 0.1, 3.1);
+		glVertex3f(-0.1, 0.1, 3.1);
+		glVertex3f(-0.1, -0.1, 3.1);
+		glVertex3f(0.1, 0.1, 3.1);
+	glEnd();
+  }
+  __finally
+  { // Відновлюємо значення поточного кольору
+	glColor3f(color[0], color[1], color[2]);
+	glPopMatrix(); // відновлюємо значення матриць
+  }
+}
+//==========================Розклад типу TColor на RGB========================//
+void ColorToRGB(int Color, GLfloat *R, GLfloat *G, GLfloat *B)
+{ *R = ((GLfloat) (Color & 0xFF))/255;
+  *G = ((GLfloat)((Color & 0xFF00) >> 8))/255;
+  *B = ((GLfloat)((Color & 0xFF0000) >> 16))/255;
+}
+//---------------------------------------------------------------------------

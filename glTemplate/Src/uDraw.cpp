@@ -1,0 +1,191 @@
+﻿//---------------------------------------------------------------------------
+#include <vcl.h>
+#include <gl.h>
+#pragma hdrstop
+#include "uDraw.h"
+#include <algorithm>
+#include <vector>
+#include <fstream>
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+using namespace std;
+vector<point> points(20);
+
+//=========================Set the pixel format ========================//
+void SetDCPixelFormat(HDC hdc)
+{ PIXELFORMATDESCRIPTOR pfd, *ppfd; int iPF;
+  ppfd = &pfd;
+  ppfd->nSize   = sizeof(PIXELFORMATDESCRIPTOR);
+  ppfd->dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+  iPF = ChoosePixelFormat(hdc, ppfd);
+  SetPixelFormat(hdc, iPF, ppfd);
+}
+//============================== Draw axes ==============================//
+void DrawAxes(bool Local)
+{ GLfloat color[3]; //array to save color constituents
+  try
+  { glPushMatrix();     // Save current matrix
+	glGetFloatv(GL_CURRENT_COLOR, color); // Save current colour
+	glScalef(0.75, 0.75, 0.75); // Set the zoom on all axes
+	glBegin(GL_LINES);
+		if(Local) glColor3f(0, 0, 0); else glColor3f (1, 0, 0);
+		glVertex3f(0, 0, 0);
+		glVertex3f(3, 0, 0);
+		if(Local) glColor3f(0, 0, 0); else glColor3f (0, 1, 0);
+		glVertex3f(0, 0, 0);
+		glVertex3f(0, 3, 0);
+		if(Local) glColor3f(0, 0, 0); else glColor3f (0, 0, 1);
+		glVertex3f(0, 0, 0);
+		glVertex3f(0, 0, 3);
+	glEnd();
+	//  X
+	if(Local) glColor3f(0, 0, 0); else glColor3f(1, 0, 0);
+	glBegin(GL_LINES);
+		glVertex3f(3.1, -0.05, 0.1);
+		glVertex3f(3.1, 0.05, -0.1);
+		glVertex3f(3.1, -0.05, -0.1);
+		glVertex3f(3.1, 0.05, 0.1);
+	glEnd();
+	//  Y
+	if(Local) glColor3f(0, 0, 0); else glColor3f(0, 1, 0);
+	glBegin(GL_LINES);
+		glVertex3f(0.0, 3.1, 0.0);
+		glVertex3f(0.0, 3.1, -0.1);
+		glVertex3f(0.0, 3.1, 0.0);
+		glVertex3f(0.1, 3.1, 0.1);
+		glVertex3f(0.0, 3.1, 0.0);
+		glVertex3f(-0.1, 3.1, 0.1);
+	glEnd();
+	//  Z
+	if(Local) glColor3f(0, 0, 0); else glColor3f(0, 0, 1);
+	glBegin(GL_LINES);
+		glVertex3f(0.1, -0.1, 3.1);
+		glVertex3f(-0.1, -0.1, 3.1);
+		glVertex3f(0.1, 0.1, 3.1);
+		glVertex3f(-0.1, 0.1, 3.1);
+		glVertex3f(-0.1, -0.1, 3.1);
+		glVertex3f(0.1, 0.1, 3.1);
+	glEnd();
+  }
+  __finally
+  { //Restore the value of the current color
+	glColor3f(color[0], color[1], color[2]);
+	glPopMatrix(); // we restore the values ​​of the matrices
+  }
+}
+//========================== TColor to RGB========================//
+void ColorToRGB(int Color, GLfloat *R, GLfloat *G, GLfloat *B)
+{ *R = ((GLfloat) (Color & 0xFF))/255;
+  *G = ((GLfloat)((Color & 0xFF00) >> 8))/255;
+  *B = ((GLfloat)((Color & 0xFF0000) >> 16))/255;
+}
+//---------------------------------------------------------------------------
+// Realization of Andrew's algorithm
+bool cw(const point &a, const point &b, const point &c) {
+	return (b.first - a.first) * (c.second - a.second) - (b.second - a.second) * (c.first - a.first) < 0;
+}
+vector<point> convexHull(vector<point> p) {
+	int n = p.size();
+	if (n <= 1)
+		return p;
+	int k = 0;
+	sort(p.begin(), p.end());
+	vector<point> q(n * 2);
+	for (int i = 0; i < n; q[k++] = p[i++])
+		for (; k >= 2 && !cw(q[k - 2], q[k - 1], p[i]); --k)
+			;
+	for (int i = n - 2, t = k; i >= 0; q[k++] = p[i--])
+		for (; k > t && !cw(q[k - 2], q[k - 1], p[i]); --k)
+			;
+	q.resize(k - 1 - (q[0] == q[1]));
+	return q;
+}
+void PrintVector(vector < point > &v)
+{
+	for (int i = 0; i < v.size(); i++)
+	{
+		cout << v[i].first << " " << v[i].second << endl;
+	}
+
+}
+void DrawPoints(vector <point> &v)
+{
+	glColor3f(0.0,0.0,0.0);
+	glPointSize(4);
+	for (int i = 0; i < v.size(); i++)
+	 {
+	 glBegin(GL_POINTS);
+	 glVertex2d(v[i].first,v[i].second);
+	 glEnd();
+
+	}
+}
+void DrawLineLoop(vector <point> &v)
+{
+	glColor3f(0.0,0.0,1.0);
+	glLineWidth(0.5);
+	glBegin(GL_LINE_LOOP);
+	for (int i = 0; i < v.size(); i++)
+	{
+
+
+	 glVertex2d(v[i].first,v[i].second);
+
+
+
+	}
+	glEnd();
+
+}
+void ReadFromFile(vector < point > &v)
+{
+	ifstream f("D:\\text.txt");
+	if (!f.is_open())
+	{
+		cout << "Error 404";
+	}
+	for (int i = 0; i < v.size(); i++)
+	{
+		f >> v[i].first >> v[i].second ;
+	}
+	f.close();
+}
+void WriteInFile(vector < point > &v)
+{
+	ofstream f("D:\\text.txt");
+	if (!f.is_open())
+	{
+		cout << "Error 404";
+	}
+	else
+	{
+		for (int i = 0; i < v.size(); i++)
+		{
+			f << v[i].first << endl << v[i].second << endl;;
+		}
+	}
+	f.close();
+}
+void AddPoint(double x, double y, vector<point> &vp)
+{
+	point newpoint;
+	newpoint.first = x;
+	newpoint.second = y;
+	glPointSize(25);
+	vp.push_back(newpoint);
+
+}
+void FuncForAddPoint(double x,double y)
+{
+	AddPoint(x,y,points);
+	DrawPoints(points);
+}
+void Draw()
+{
+glColor3f(0.0,0.0,1.0);
+	ReadFromFile(points);
+	vector<point> hull = convexHull(points);
+	DrawPoints(points);
+	DrawLineLoop(hull);
+
+}

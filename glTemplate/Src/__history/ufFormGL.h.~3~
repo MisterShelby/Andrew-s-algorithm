@@ -1,0 +1,56 @@
+//---------------------------------------------------------------------------
+#ifndef ufFormGLH
+#define ufFormGLH
+//---------------------------------------------------------------------------
+#include <Classes.hpp>
+#include <Controls.hpp>
+#include <StdCtrls.hpp>
+#include <Forms.hpp>
+//---------------------------------------------------------------------------
+class TFormGL : public TForm
+{
+__published:	// IDE-managed Components
+	TButton *Button1;
+	void __fastcall FormResize(TObject *Sender);
+	void __fastcall FormPaint(TObject *Sender);
+	void __fastcall FormKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall FormMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);
+	void __fastcall FormMouseWheel(TObject *Sender, TShiftState Shift, int WheelDelta,
+          TPoint &MousePos, bool &Handled);
+	void __fastcall FormMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
+          int X, int Y);
+	void __fastcall Button1Click(TObject *Sender);
+
+private:	// User declarations
+	HDC   FGLDC;    // посилання на контекст пристрою
+	HGLRC FHRC;     // посилання на контекст відображення
+
+	int FMouseX;    // попереднє значення координати X положення миші на формі
+	int FMouseY;    // попереднє значення координати Y положення миші на формі
+
+	GLfloat FTrans[3]; // зміщення відносно початку координат по трьом осям
+
+	TColor  FColor; // колір
+
+	GLfloat FR;     // складова R (червона) кольору
+	GLfloat FG;     // складова G (зелена) кольору
+	GLfloat FB;     // складова B (синя) кольору
+
+	GLfloat FEye[3];    // положення ока спостерігача (камери)
+	GLfloat FCenter[3]; // точка, куди дивиться спостерігач (камера)
+	GLfloat FUp[3];     // вектор повороту сцени (вектор напрямку осі OZ)
+
+	GLfloat FPAngle;    // кут повороту навколо осі OZ
+	GLfloat FQAngle;    // кут повороту навколо горизонталі
+	GLfloat FDistance;  // дистанція від ока спостерігача до центру сцени
+
+	GLfloat FZnear;
+	GLfloat FZfar;
+public:		// User declarations
+	__fastcall  TFormGL(TComponent* Owner);
+	__fastcall ~TFormGL(void);
+};
+//---------------------------------------------------------------------------
+extern PACKAGE TFormGL *FormGL;
+//---------------------------------------------------------------------------
+#endif
